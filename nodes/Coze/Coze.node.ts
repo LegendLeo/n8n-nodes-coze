@@ -73,11 +73,70 @@ export class Coze implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
-						name: 'Bot',
-						value: 'bot',
+						name: 'Workspace',
+						value: 'workspace',
 					},
 				],
-				default: 'bot',
+				default: 'workspace',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['workspace'],
+					},
+				},
+				options: [
+					{
+						name: 'List',
+						value: 'list',
+						description: 'List all workspaces',
+						action: 'List a workspace',
+					},
+				],
+				default: 'list',
+			},
+			{
+				displayName: 'Enterprise ID',
+				name: 'enterpriseId',
+				type: 'string',
+				default: '',
+				description: 'ID of the enterprise to list workspaces for',
+				displayOptions: {
+					show: {
+						resource: ['workspace'],
+						operation: ['list'],
+					},
+				},
+			},
+			{
+				displayName: 'User ID',
+				name: 'userId',
+				type: 'string',
+				default: '',
+				description: 'ID of the user to list workspaces for',
+				displayOptions: {
+					show: {
+						resource: ['workspace'],
+						operation: ['list'],
+					},
+				},
+			},
+			{
+				displayName: 'Coze Account ID',
+				name: 'cozeAccountId',
+				type: 'string',
+				default: '',
+				description: 'ID of the Coze account to list workspaces for',
+				displayOptions: {
+					show: {
+						resource: ['workspace'],
+						operation: ['list'],
+					},
+				},
 			},
 		],
 	};
@@ -87,163 +146,46 @@ export class Coze implements INodeType {
 		const returnData: IDataObject[] = [];
 		const resource = this.getNodeParameter('resource', 0) as string;
 		const operation = this.getNodeParameter('operation', 0) as string;
+		const authentication = this.getNodeParameter('authentication', 0) as string;
 
 		for (let i = 0; i < items.length; i++) {
 			try {
 				let responseData;
 
-				if (resource === 'bot') {
-					if (operation === 'get') {
-						const botId = this.getNodeParameter('botId', i) as string;
+				if (resource === 'workspace') {
+					if (operation === 'list') {
+						const credentials = await this.getCredentials(authentication);
+						const qs: IDataObject = {};
+						const enterpriseId = this.getNodeParameter('enterpriseId', i) as string;
+						const userId = this.getNodeParameter('userId', i) as string;
+						const cozeAccountId = this.getNodeParameter('cozeAccountId', i) as string;
+
+						if (enterpriseId) {
+							qs.enterprise_id = enterpriseId;
+						}
+						if (userId) {
+							qs.user_id = userId;
+						}
+						if (cozeAccountId) {
+							qs.coze_account_id = cozeAccountId;
+						}
 
 						const options: IRequestOptions = {
+							baseURL: credentials.baseUrl as string,
 							method: 'GET',
-							uri: `https://api.coze.com/v1/bot/get_online_info`,
-							qs: {
-								bot_id: botId,
-							},
-							headers: {
-								Accept: 'application/json',
-							},
+							url: `/v1/workspaces`,
+							qs,
 							json: true,
 						};
 
 						responseData = await this.helpers.requestWithAuthentication.call(
 							this,
-							'cozeApi',
-							options,
-						);
-					} else if (operation === 'list') {
-						const options: IRequestOptions = {
-							method: 'GET',
-							uri: `https://api.coze.com/v1/space/published_bots_list`,
-							headers: {
-								Accept: 'application/json',
-							},
-							json: true,
-						};
-
-						responseData = await this.helpers.requestWithAuthentication.call(
-							this,
-							'cozeApi',
+							authentication,
 							options,
 						);
 					}
 				} else if (resource === 'chat') {
-					if (operation === 'create') {
-						const botId = this.getNodeParameter('botId', i) as string;
-						const userId = this.getNodeParameter('userId', i) as string;
-						const additionalFields = this.getNodeParameter('additionalFields', i) as IDataObject;
-
-						const body: IDataObject = {
-							bot_id: botId,
-							user_id: userId,
-						};
-
-						if (additionalFields.stream) {
-							body.stream = additionalFields.stream;
-						}
-
-						if (additionalFields.customVariables) {
-							const variables = additionalFields.customVariables as IDataObject;
-							if (variables.variable && Array.isArray(variables.variable)) {
-								const customVars: IDataObject = {};
-								for (const variable of variables.variable) {
-									customVars[variable.key] = variable.value;
-								}
-								body.custom_variables = customVars;
-							}
-						}
-
-						const options: IRequestOptions = {
-							method: 'POST',
-							uri: `https://api.coze.com/v1/chat`,
-							body,
-							headers: {
-								Accept: 'application/json',
-								'Content-Type': 'application/json',
-							},
-							json: true,
-						};
-
-						responseData = await this.helpers.requestWithAuthentication.call(
-							this,
-							'cozeApi',
-							options,
-						);
-					} else if (operation === 'sendMessage') {
-						const chatId = this.getNodeParameter('chatId', i) as string;
-						const message = this.getNodeParameter('message', i) as string;
-						const additionalFields = this.getNodeParameter('additionalFields', i) as IDataObject;
-
-						const body: IDataObject = {
-							chat_id: chatId,
-							query: message,
-						};
-
-						if (additionalFields.stream) {
-							body.stream = additionalFields.stream;
-						}
-
-						const options: IRequestOptions = {
-							method: 'POST',
-							uri: `https://api.coze.com/v1/chat/submit`,
-							body,
-							headers: {
-								Accept: 'application/json',
-								'Content-Type': 'application/json',
-							},
-							json: true,
-						};
-
-						responseData = await this.helpers.requestWithAuthentication.call(
-							this,
-							'cozeApi',
-							options,
-						);
-					}
 				} else if (resource === 'conversation') {
-					if (operation === 'get') {
-						const conversationId = this.getNodeParameter('conversationId', i) as string;
-
-						const options: IRequestOptions = {
-							method: 'GET',
-							uri: `https://api.coze.com/v1/conversation/retrieve`,
-							qs: {
-								conversation_id: conversationId,
-							},
-							headers: {
-								Accept: 'application/json',
-							},
-							json: true,
-						};
-
-						responseData = await this.helpers.requestWithAuthentication.call(
-							this,
-							'cozeApi',
-							options,
-						);
-					} else if (operation === 'listMessages') {
-						const conversationId = this.getNodeParameter('conversationId', i) as string;
-
-						const options: IRequestOptions = {
-							method: 'GET',
-							uri: `https://api.coze.com/v1/conversation/message/list`,
-							qs: {
-								conversation_id: conversationId,
-							},
-							headers: {
-								Accept: 'application/json',
-							},
-							json: true,
-						};
-
-						responseData = await this.helpers.requestWithAuthentication.call(
-							this,
-							'cozeApi',
-							options,
-						);
-					}
 				}
 
 				if (Array.isArray(responseData)) {
