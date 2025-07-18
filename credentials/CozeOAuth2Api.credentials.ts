@@ -67,11 +67,21 @@ export class CozeOAuth2Api implements ICredentialType {
       required: true,
     },
     {
-      displayName: 'Base URL',
+      displayName: '站点',
       name: 'baseUrl',
-      type: 'string',
+      type: 'options',
+			options: [
+				{
+					name: '大陆站（Coze.cn）',
+					value: 'https://api.coze.cn',
+				},
+				{
+					name: '国际站（Coze.com）',
+					value: 'https://api.coze.com',
+				},
+			],
       default: 'https://api.coze.cn',
-      description: 'Base URL for the Coze API',
+      description: '站点分国内站和国际站，请确认您要使用的站点',
       required: true,
     },
     {
