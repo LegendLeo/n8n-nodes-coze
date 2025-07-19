@@ -12,9 +12,11 @@ import { NodeConnectionType } from 'n8n-workflow';
 import { workspaceProperties } from './descriptions/workspace';
 import { chatProperties } from './descriptions/chat';
 import { workflowProperties } from './descriptions/workflow';
+import { fileProperties } from './descriptions/file';
 import { executeWorkspace } from './actions/workspace';
 import { executeChat } from './actions/chat';
 import { executeWorkflow } from './actions/workflow';
+import { executeFile } from './actions/file';
 
 export class Coze implements INodeType {
 	description: INodeTypeDescription = {
@@ -92,12 +94,17 @@ export class Coze implements INodeType {
 						name: 'Workflow',
 						value: 'workflow',
 					},
+					{
+						name: 'File',
+						value: 'file',
+					},
 				],
 				default: 'workspace',
 			},
 			...workspaceProperties,
 			...chatProperties,
 			...workflowProperties,
+			...fileProperties,
 		],
 	};
 
@@ -173,6 +180,8 @@ export class Coze implements INodeType {
 					responseData = await executeChat.call(this, i);
 				} else if (resource === 'workflow') {
 					responseData = await executeWorkflow.call(this, i);
+				} else if (resource === 'file') {
+					responseData = await executeFile.call(this, i);
 				}
 
 				if (Array.isArray(responseData)) {
