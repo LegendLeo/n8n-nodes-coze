@@ -2,11 +2,17 @@ import type {
 	IExecuteFunctions,
 	IDataObject,
 	INodeExecutionData,
-	IRequestOptions,
 	INodeType,
 	INodeTypeDescription,
+	ILoadOptionsFunctions,
+	INodePropertyOptions,
+	IRequestOptions,
 } from 'n8n-workflow';
 import { NodeConnectionType } from 'n8n-workflow';
+import { workspaceProperties } from './descriptions/workspace';
+import { chatProperties } from './descriptions/chat';
+import { executeWorkspace } from './actions/workspace';
+import { executeChat } from './actions/chat';
 
 export class Coze implements INodeType {
 	description: INodeTypeDescription = {
@@ -43,7 +49,7 @@ export class Coze implements INodeType {
 			},
 		],
 		requestDefaults: {
-			baseURL: 'https://api.coze.com',
+			baseURL: 'https://api.coze.cn',
 			headers: {
 				Accept: 'application/json',
 				'Content-Type': 'application/json',
@@ -76,116 +82,88 @@ export class Coze implements INodeType {
 						name: 'Workspace',
 						value: 'workspace',
 					},
+					{
+						name: 'Chat',
+						value: 'chat',
+					},
 				],
 				default: 'workspace',
 			},
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: {
-					show: {
-						resource: ['workspace'],
-					},
-				},
-				options: [
-					{
-						name: 'List',
-						value: 'list',
-						description: 'List all workspaces',
-						action: 'List a workspace',
-					},
-				],
-				default: 'list',
-			},
-			{
-				displayName: 'Enterprise ID',
-				name: 'enterpriseId',
-				type: 'string',
-				default: '',
-				description: 'ID of the enterprise to list workspaces for',
-				displayOptions: {
-					show: {
-						resource: ['workspace'],
-						operation: ['list'],
-					},
-				},
-			},
-			{
-				displayName: 'User ID',
-				name: 'userId',
-				type: 'string',
-				default: '',
-				description: 'ID of the user to list workspaces for',
-				displayOptions: {
-					show: {
-						resource: ['workspace'],
-						operation: ['list'],
-					},
-				},
-			},
-			{
-				displayName: 'Coze Account ID',
-				name: 'cozeAccountId',
-				type: 'string',
-				default: '',
-				description: 'ID of the Coze account to list workspaces for',
-				displayOptions: {
-					show: {
-						resource: ['workspace'],
-						operation: ['list'],
-					},
-				},
-			},
+			...workspaceProperties,
+			...chatProperties,
 		],
+	};
+
+	methods = {
+		loadOptions: {
+			async getWorkspaces(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const authentication = this.getCurrentNodeParameter('authentication') as string;
+				const credentials = await this.getCredentials(authentication);
+				const options: IRequestOptions = {
+					baseURL: credentials.baseUrl as string,
+					method: 'GET',
+					url: `/v1/workspaces`,
+					json: true,
+				};
+				const { code, data } = await this.helpers.requestWithAuthentication.call(
+					this,
+					authentication,
+					options,
+				);
+				if (code === 0 && Array.isArray(data?.workspaces)) {
+					return data.workspaces.map((workspace: any) => ({
+						name: workspace.name,
+						value: workspace.id,
+					}));
+				}
+				return [];
+			},
+
+			async getBots(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const workspaceId = this.getCurrentNodeParameter('workspaceId') as string;
+				if (!workspaceId) {
+					return [];
+				}
+				const authentication = this.getCurrentNodeParameter('authentication') as string;
+				const credentials = await this.getCredentials(authentication);
+				const options: IRequestOptions = {
+					baseURL: credentials.baseUrl as string,
+					method: 'GET',
+					url: `/v1/bots`,
+					qs: {
+						workspace_id: workspaceId,
+					},
+					json: true,
+				};
+				const { code, data } = await this.helpers.requestWithAuthentication.call(
+					this,
+					authentication,
+					options,
+				);
+				if (code === 0 && Array.isArray(data?.items)) {
+					return data.items.map((bot: any) => ({
+						name: bot.name,
+						value: bot.id,
+					}));
+				}
+				return [];
+			},
+		},
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: IDataObject[] = [];
 		const resource = this.getNodeParameter('resource', 0) as string;
-		const operation = this.getNodeParameter('operation', 0) as string;
-		const authentication = this.getNodeParameter('authentication', 0) as string;
 
 		for (let i = 0; i < items.length; i++) {
 			try {
 				let responseData;
 
 				if (resource === 'workspace') {
-					if (operation === 'list') {
-						const credentials = await this.getCredentials(authentication);
-						const qs: IDataObject = {};
-						const enterpriseId = this.getNodeParameter('enterpriseId', i) as string;
-						const userId = this.getNodeParameter('userId', i) as string;
-						const cozeAccountId = this.getNodeParameter('cozeAccountId', i) as string;
-
-						if (enterpriseId) {
-							qs.enterprise_id = enterpriseId;
-						}
-						if (userId) {
-							qs.user_id = userId;
-						}
-						if (cozeAccountId) {
-							qs.coze_account_id = cozeAccountId;
-						}
-
-						const options: IRequestOptions = {
-							baseURL: credentials.baseUrl as string,
-							method: 'GET',
-							url: `/v1/workspaces`,
-							qs,
-							json: true,
-						};
-
-						responseData = await this.helpers.requestWithAuthentication.call(
-							this,
-							authentication,
-							options,
-						);
-					}
+					responseData = await executeWorkspace.call(this, i);
 				} else if (resource === 'chat') {
-				} else if (resource === 'conversation') {
+					responseData = await executeChat.call(this, i);
 				}
 
 				if (Array.isArray(responseData)) {
