@@ -11,8 +11,10 @@ import type {
 import { NodeConnectionType } from 'n8n-workflow';
 import { workspaceProperties } from './descriptions/workspace';
 import { chatProperties } from './descriptions/chat';
+import { workflowProperties } from './descriptions/workflow';
 import { executeWorkspace } from './actions/workspace';
 import { executeChat } from './actions/chat';
+import { executeWorkflow } from './actions/workflow';
 
 export class Coze implements INodeType {
 	description: INodeTypeDescription = {
@@ -86,11 +88,16 @@ export class Coze implements INodeType {
 						name: 'Chat',
 						value: 'chat',
 					},
+					{
+						name: 'Workflow',
+						value: 'workflow',
+					},
 				],
 				default: 'workspace',
 			},
 			...workspaceProperties,
 			...chatProperties,
+			...workflowProperties,
 		],
 	};
 
@@ -164,6 +171,8 @@ export class Coze implements INodeType {
 					responseData = await executeWorkspace.call(this, i);
 				} else if (resource === 'chat') {
 					responseData = await executeChat.call(this, i);
+				} else if (resource === 'workflow') {
+					responseData = await executeWorkflow.call(this, i);
 				}
 
 				if (Array.isArray(responseData)) {
