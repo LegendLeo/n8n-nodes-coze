@@ -11,21 +11,12 @@ export const chatProperties: INodeProperties[] = [
 				resource: ['chat'],
 			},
 		},
+		// eslint-disable-next-line n8n-nodes-base/node-param-options-type-unsorted-items
 		options: [
 			{
 				name: '创建对话',
 				value: 'create',
 				action: 'Create a chat completion',
-			},
-			{
-				name: '取消进行中的对话',
-				value: 'cancel',
-				action: 'Cancel a chat',
-			},
-			{
-				name: '提交工具执行结果',
-				value: 'submitToolOutputs',
-				action: 'Submit tool outputs',
 			},
 			{
 				name: '查看对话消息详情',
@@ -36,6 +27,16 @@ export const chatProperties: INodeProperties[] = [
 				name: '查看对话详情',
 				value: 'retrieve',
 				action: 'Retrieve a chat completion',
+			},
+			{
+				name: '取消进行中的对话',
+				value: 'cancel',
+				action: 'Cancel a chat',
+			},
+			{
+				name: '提交工具执行结果',
+				value: 'submitToolOutputs',
+				action: 'Submit tool outputs',
 			},
 		],
 		default: 'create',
