@@ -13,10 +13,12 @@ import { workspaceProperties } from './descriptions/workspace';
 import { chatProperties } from './descriptions/chat';
 import { workflowProperties } from './descriptions/workflow';
 import { fileProperties } from './descriptions/file';
+import { audioProperties } from './descriptions/audio';
 import { executeWorkspace } from './actions/workspace';
 import { executeChat } from './actions/chat';
 import { executeWorkflow } from './actions/workflow';
 import { executeFile } from './actions/file';
+import { executeAudio } from './actions/audio';
 
 export class Coze implements INodeType {
 	description: INodeTypeDescription = {
@@ -83,20 +85,24 @@ export class Coze implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
-						name: 'Workspace',
-						value: 'workspace',
+						name: 'Audio',
+						value: 'audio',
 					},
 					{
 						name: 'Chat',
 						value: 'chat',
 					},
 					{
+						name: 'File',
+						value: 'file',
+					},
+					{
 						name: 'Workflow',
 						value: 'workflow',
 					},
 					{
-						name: 'File',
-						value: 'file',
+						name: 'Workspace',
+						value: 'workspace',
 					},
 				],
 				default: 'workspace',
@@ -105,6 +111,7 @@ export class Coze implements INodeType {
 			...chatProperties,
 			...workflowProperties,
 			...fileProperties,
+			...audioProperties,
 		],
 	};
 
@@ -162,6 +169,29 @@ export class Coze implements INodeType {
 				}
 				return [];
 			},
+
+			async getVoices(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const authentication = this.getCurrentNodeParameter('authentication') as string;
+				const credentials = await this.getCredentials(authentication);
+				const options: IRequestOptions = {
+					baseURL: credentials.baseUrl as string,
+					method: 'GET',
+					url: `/v1/audio/voices`,
+					json: true,
+				};
+				const { code, data } = await this.helpers.requestWithAuthentication.call(
+					this,
+					authentication,
+					options,
+				);
+				if (code === 0 && Array.isArray(data?.voice_list)) {
+					return data.voice_list.map((voice: any) => ({
+						name: voice.name,
+						value: voice.voice_id,
+					}));
+				}
+				return [];
+			},
 		},
 	};
 
@@ -182,6 +212,8 @@ export class Coze implements INodeType {
 					responseData = await executeWorkflow.call(this, i);
 				} else if (resource === 'file') {
 					responseData = await executeFile.call(this, i);
+				} else if (resource === 'audio') {
+					responseData = await executeAudio.call(this, i);
 				}
 
 				if (Array.isArray(responseData)) {
