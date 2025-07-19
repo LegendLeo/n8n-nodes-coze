@@ -1,13 +1,19 @@
 {
   "name": "n8n-nodes-coze",
   "version": "0.1.0",
-  "description": "",
+  "description": "n8n node for Coze(扣子), supporting AI chat, workflow automation, file processing, and text-to-speech.",
   "keywords": [
     "n8n-community-node-package",
-    "coze"
+    "coze",
+    "扣子",
+    "ai",
+    "llm",
+    "chatbot",
+    "workflow automation",
+    "tts"
   ],
   "license": "MIT",
-  "homepage": "",
+  "homepage": "https://github.com/LegendLeo/n8n-nodes-coze",
   "author": {
     "name": "Tsing",
     "email": "hqyx45@gmail.com"

@@ -46,8 +46,8 @@ export async function executeAudio(this: IExecuteFunctions, i: number): Promise<
 		const fileName = `speech.${responseFormat}`;
 		const binaryData = await this.helpers.prepareBinaryData.call(
 			this,
-			response, // 【传入 Buffer】: 这是请求返回的二进制数据
-			fileName, // 【文件名】: 你可以硬编码，或从API响应头(Content-Disposition)解析
+			response,
+			fileName,
 		);
 		return {
 			json: {},
